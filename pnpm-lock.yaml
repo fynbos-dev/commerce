@@ -232,6 +232,7 @@ importers:
       '@types/react': ^18.0.14
       '@vercel/commerce': workspace:*
       lint-staged: ^12.1.7
+      lodash.debounce: ^4.0.8
       next: ^13.0.6
       prettier: ^2.5.1
       react: ^18.2.0
@@ -241,6 +242,7 @@ importers:
       typescript: ^4.7.4
     dependencies:
       '@vercel/commerce': link:../commerce
+      lodash.debounce: 4.0.8
     devDependencies:
       '@taskr/clear': 1.1.0
       '@taskr/esnext': 1.1.0
