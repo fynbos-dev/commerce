@@ -2,7 +2,7 @@
   "provider": "local",
   "features": {
     "wishlist": false,
-    "cart": false,
+    "cart": true,
     "search": false,
     "customerAuth": false,
     "customCheckout": false
