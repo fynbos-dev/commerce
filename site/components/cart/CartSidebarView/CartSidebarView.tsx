@@ -1,9 +1,9 @@
 import cn from 'clsx'
 import Link from 'next/link'
-import { FC } from 'react'
+import { FC, useState } from 'react'
 import s from './CartSidebarView.module.css'
 import CartItem from '../CartItem'
-import { Button, Text } from '@components/ui'
+import { Button, Input, Text } from '@components/ui'
 import { useUI } from '@components/ui/context'
 import { Bag, Cross, Check } from '@components/icons'
 import useCart from '@framework/cart/use-cart'
@@ -11,7 +11,8 @@ import usePrice from '@framework/product/use-price'
 import SidebarLayout from '@components/common/SidebarLayout'
 
 const CartSidebarView: FC = () => {
-  const { closeSidebar, setSidebarView } = useUI()
+  const [paymentPointer, setPaymentPointer] = useState<string>('')
+  const { closeSidebar } = useUI()
   const { data, isLoading, isEmpty } = useCart()
 
   const { price: subTotal } = usePrice(
@@ -27,7 +28,7 @@ const CartSidebarView: FC = () => {
     }
   )
   const handleClose = () => closeSidebar()
-  const goToCheckout = () => setSidebarView('CHECKOUT_VIEW')
+  const goToCheckout = () => {}
 
   const error = null
   const success = null
@@ -89,6 +90,12 @@ const CartSidebarView: FC = () => {
             </ul>
           </div>
 
+          <div className="justify-between py-6 px-6">
+            <li className='flex py-2'>
+              <span className='text-sm font-bold'>Payment Pointer</span>
+            </li>
+            <Input placeholder="$fynbos.me/username" onChange={setPaymentPointer} />
+          </div>
           <div className="flex-shrink-0 px-6 py-6 sm:px-6 sticky z-20 bottom-0 w-full right-0 left-0 bg-accent-0 border-t text-sm">
             <ul className="pb-2">
               <li className="flex justify-between py-1">
