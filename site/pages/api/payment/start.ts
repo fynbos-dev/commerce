@@ -137,7 +137,7 @@ const start: NextApiHandler = async (req, res) => {
             assetScale: 2,
           },
           expiresAt: new Date(
-            new Date().getTime() + 24 * 60 * 60 * 1000
+            new Date().getTime() + 24 * 60 * 60 * 1000 // tomorrow
           ).toISOString(),
           description: `Acme Commerce Invoice for ${customerPaymentPointer}`,
         }),
@@ -207,7 +207,7 @@ const start: NextApiHandler = async (req, res) => {
       .json({ error: 'Error signing outgoing grant request' })
   })
 
-  const outgoingPaymentGrant = await fetch(
+  const outgoingPaymentGrantContinue = await fetch(
     outgoingPaymentGrantRequest.signedGrantRequest
   )
     .then(async (res) => {
@@ -225,7 +225,16 @@ const start: NextApiHandler = async (req, res) => {
         .json({ error: 'Error getting outgoing payment grant' })
     })
 
-  return res.status(200).json(outgoingPaymentGrant)
+  return res.status(200).json({
+    outgoingPaymentGrantContinue,
+    incomingPayment,
+    keyId: outgoingPaymentGrantRequest.keyId,
+    signatureUrl: outgoingPaymentGrantRequest.signatureUrl,
+    customerPaymentPointerUrl,
+    merchantPaymentPointerUrl,
+    merchantHost,
+    customerHost,
+  })
 }
 
 interface RequestBody {
