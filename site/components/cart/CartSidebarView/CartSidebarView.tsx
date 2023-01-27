@@ -28,7 +28,20 @@ const CartSidebarView: FC = () => {
     }
   )
   const handleClose = () => closeSidebar()
-  const goToCheckout = () => {}
+  const goToCheckout = async () => {
+    if (!paymentPointer) return
+
+    const res = await fetch('/api/payment/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customerPaymentPointer: paymentPointer,
+        amount: data!.totalPrice.toString(),
+      }),
+    })
+  }
 
   const error = null
   const success = null
@@ -91,10 +104,13 @@ const CartSidebarView: FC = () => {
           </div>
 
           <div className="justify-between py-6 px-6">
-            <li className='flex py-2'>
-              <span className='text-sm font-bold'>Payment Pointer</span>
+            <li className="flex py-2">
+              <span className="text-sm font-bold">Payment Pointer</span>
             </li>
-            <Input placeholder="$fynbos.me/username" onChange={setPaymentPointer} />
+            <Input
+              placeholder="$fynbos.me/username"
+              onChange={setPaymentPointer}
+            />
           </div>
           <div className="flex-shrink-0 px-6 py-6 sm:px-6 sticky z-20 bottom-0 w-full right-0 left-0 bg-accent-0 border-t text-sm">
             <ul className="pb-2">
