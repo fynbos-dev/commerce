@@ -9,6 +9,7 @@ import { Bag, Cross, Check } from '@components/icons'
 import useCart from '@framework/cart/use-cart'
 import usePrice from '@framework/product/use-price'
 import SidebarLayout from '@components/common/SidebarLayout'
+import base64url from 'base64url'
 
 const CartSidebarView: FC = () => {
   const [paymentPointer, setPaymentPointer] = useState<string>('')
@@ -31,7 +32,7 @@ const CartSidebarView: FC = () => {
   const goToCheckout = async () => {
     if (!paymentPointer) return
 
-    const res = await fetch('/api/payment/start', {
+    const start = await fetch('/api/payment/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -40,6 +41,16 @@ const CartSidebarView: FC = () => {
         customerPaymentPointer: paymentPointer,
         amount: data!.totalPrice.toString(),
       }),
+    }).then(async (res) => {
+      if (!res.ok) throw alert(await res.text())
+      return res.json()
+    })
+
+    const paymentResponse = await authorize({
+      credentialIds: start.interact.spc.credential_ids,
+      challenge: start.interact.spc.challenge,
+      amount: data!.totalPrice.toString(),
+      instrument: paymentPointer
     })
   }
 
@@ -150,3 +161,63 @@ const CartSidebarView: FC = () => {
 }
 
 export default CartSidebarView
+
+
+interface AuthorizeOptions {
+  credentialIds: string[],
+  challenge: string,
+  instrument: string,
+  amount: string,
+}
+
+const authorize = async (opts: AuthorizeOptions ) => {
+  const request = new PaymentRequest([{
+    // Specify `secure-payment-confirmation` as payment method.
+    supportedMethods: "secure-payment-confirmation",
+    data: {
+      rpId: "localhost",
+      // List of credential IDs obtained from the RP server.
+      credentialIds: [base64url.toBuffer(opts.credentialIds[0])],
+      // The challenge is also obtained from the RP server.
+      challenge: base64url.toBuffer(opts.challenge),
+      // A display name and an icon that represent the payment instrument.
+      instrument: {
+        displayName: opts.instrument,
+        icon: "https://fynbos.app/icon.png",
+        iconMustBeShown: false
+      },
+      // The origin of the payee (merchant)
+      payeeOrigin: "https://acme.commerce",
+      // The number of milliseconds to timeout.
+      timeout: 360000,  // 6 minutes
+    }
+  }], {
+    // Payment details.
+    total: {
+      label: "Total",
+      amount: {
+        currency: "USD",
+        value: opts.amount,
+      },
+    },
+  });
+
+  try {
+    const response = await request.show()
+      .catch((err) => {
+        console.log(err)
+      })
+    if (!response) {
+      // The user cancelled the payment.
+      throw new Error("Payment cancelled");
+    }
+    // response.details is a PublicKeyCredential, with a clientDataJSON that
+    // contains the transaction data for verification by the issuing bank.
+    // Make sure to serialize the binary part of the credential before
+    // transferring to the server.
+    return response
+  } catch (err) {
+    // SPC cannot be used; merchant should fallback to traditional flows
+    throw err;
+  }
+}
