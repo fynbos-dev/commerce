@@ -10,9 +10,12 @@ import useCart from '@framework/cart/use-cart'
 import usePrice from '@framework/product/use-price'
 import SidebarLayout from '@components/common/SidebarLayout'
 import base64url from 'base64url'
+import { getResponseToJSON } from '@github/webauthn-json/extended'
 
 const CartSidebarView: FC = () => {
-  const [paymentPointer, setPaymentPointer] = useState<string>('')
+  const [ success, setSuccess ] = useState(false)
+  const [ error, setError ] = useState(false)
+  const [ paymentPointer, setPaymentPointer ] = useState<string>('')
   const { closeSidebar } = useUI()
   const { data, isLoading, isEmpty } = useCart()
 
@@ -28,7 +31,13 @@ const CartSidebarView: FC = () => {
       currencyCode: data.currency.code,
     }
   )
-  const handleClose = () => closeSidebar()
+
+  const handleClose = () => {
+    setSuccess(false)
+    setError(false)
+    closeSidebar()
+  }
+
   const goToCheckout = async () => {
     if (!paymentPointer) return
 
@@ -42,20 +51,45 @@ const CartSidebarView: FC = () => {
         amount: data!.totalPrice.toString(),
       }),
     }).then(async (res) => {
-      if (!res.ok) throw alert(await res.text())
+      if (!res.ok) { 
+        setError(true)
+        throw alert(await res.text())
+      }
       return res.json()
     })
 
     const paymentResponse = await authorize({
-      credentialIds: start.interact.spc.credential_ids,
-      challenge: start.interact.spc.challenge,
+      credentialIds: start.outgoingPaymentGrantContinue.interact.spc.credential_ids,
+      challenge: start.outgoingPaymentGrantContinue.interact.spc.challenge,
       amount: data!.totalPrice.toString(),
-      instrument: paymentPointer
+      instrument: paymentPointer,
+    }).catch((err) => {
+      setError(true)
+      throw alert(err)
     })
-  }
 
-  const error = null
-  const success = null
+    const finish = await fetch('/api/payment/finish', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        credential: getResponseToJSON(paymentResponse.details),
+        ...start,
+      }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        setError(true)
+        await paymentResponse.complete('fail')
+        throw alert(await res.text())
+      }
+      return res.json()
+    })
+
+    setSuccess(true)
+    localStorage.removeItem('cartId')
+    return paymentResponse.complete('success')
+  }
 
   return (
     <SidebarLayout
@@ -162,54 +196,57 @@ const CartSidebarView: FC = () => {
 
 export default CartSidebarView
 
-
 interface AuthorizeOptions {
-  credentialIds: string[],
-  challenge: string,
-  instrument: string,
-  amount: string,
+  credentialIds: string[]
+  challenge: string
+  instrument: string
+  amount: string
 }
 
-const authorize = async (opts: AuthorizeOptions ) => {
-  const request = new PaymentRequest([{
-    // Specify `secure-payment-confirmation` as payment method.
-    supportedMethods: "secure-payment-confirmation",
-    data: {
-      rpId: "localhost",
-      // List of credential IDs obtained from the RP server.
-      credentialIds: [base64url.toBuffer(opts.credentialIds[0])],
-      // The challenge is also obtained from the RP server.
-      challenge: base64url.toBuffer(opts.challenge),
-      // A display name and an icon that represent the payment instrument.
-      instrument: {
-        displayName: opts.instrument,
-        icon: "https://fynbos.app/icon.png",
-        iconMustBeShown: false
+const authorize = async (opts: AuthorizeOptions) => {
+  const request = new PaymentRequest(
+    [
+      {
+        // Specify `secure-payment-confirmation` as payment method.
+        supportedMethods: 'secure-payment-confirmation',
+        data: {
+          rpId: 'localhost',
+          // List of credential IDs obtained from the RP server.
+          credentialIds: [base64url.toBuffer(opts.credentialIds[0])],
+          // The challenge is also obtained from the RP server.
+          challenge: base64url.toBuffer(opts.challenge),
+          // A display name and an icon that represent the payment instrument.
+          instrument: {
+            displayName: opts.instrument,
+            icon: 'https://fynbos.app/icon.png',
+            iconMustBeShown: false,
+          },
+          // The origin of the payee (merchant)
+          payeeOrigin: 'https://acme.commerce',
+          // The number of milliseconds to timeout.
+          timeout: 360000, // 6 minutes
+        },
       },
-      // The origin of the payee (merchant)
-      payeeOrigin: "https://acme.commerce",
-      // The number of milliseconds to timeout.
-      timeout: 360000,  // 6 minutes
+    ],
+    {
+      // Payment details.
+      total: {
+        label: 'Total',
+        amount: {
+          currency: 'USD',
+          value: opts.amount,
+        },
+      },
     }
-  }], {
-    // Payment details.
-    total: {
-      label: "Total",
-      amount: {
-        currency: "USD",
-        value: opts.amount,
-      },
-    },
-  });
+  )
 
   try {
-    const response = await request.show()
-      .catch((err) => {
-        console.log(err)
-      })
+    const response = await request.show().catch((err) => {
+      console.log(err)
+    })
     if (!response) {
       // The user cancelled the payment.
-      throw new Error("Payment cancelled");
+      throw new Error('Payment cancelled')
     }
     // response.details is a PublicKeyCredential, with a clientDataJSON that
     // contains the transaction data for verification by the issuing bank.
@@ -218,6 +255,6 @@ const authorize = async (opts: AuthorizeOptions ) => {
     return response
   } catch (err) {
     // SPC cannot be used; merchant should fallback to traditional flows
-    throw err;
+    throw err
   }
 }
