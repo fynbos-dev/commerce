@@ -181,7 +181,7 @@ const start: NextApiHandler = async (req, res) => {
               identifier: customerPaymentPointer.replace('$', 'https://'),
               limits: {
                 sendAmount: {
-                  value: (scaledAmount + scaledAmount * 0.1).toString(), // calculate 10% slippage
+                  value: (scaledAmount + scaledAmount * 0.1).toFixed(), // calculate 10% slippage
                   assetCode: 'USD',
                   assetScale: 2,
                 },
