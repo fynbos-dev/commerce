@@ -5,12 +5,12 @@ export const signGrantRequest = async (request: Request) => {
   const requestBody = await request.clone().json()
   const client = new URL(requestBody.client)
 
-  const jwkUrl = `http://localhost:${client.host === 'backend' ? '3' : '4'}000${
+  const jwkUrl = `http://localhost:${client.host === 'fynbos' ? '3' : '4'}000${
     client.pathname
   }/jwks.json`
 
   const signatureUrl =
-    client.host === 'backend' ? SIGNATURE_HOST : PEER_SIGNATURE_HOST
+    client.host === 'fynbos' ? SIGNATURE_HOST : PEER_SIGNATURE_HOST
 
   const requestHeaders = Object.fromEntries(request.headers)
 
@@ -64,7 +64,7 @@ export const signGrantRequest = async (request: Request) => {
 export const preRequestSignatures =
   (signatureUrl: string, keyId: string) => async (request: Request) => {
     const requestUrl = request.url.replace(/localhost:([3,4])000/g, (_, key) =>
-      key === '3' ? 'backend' : 'peer-backend'
+      key === '3' ? 'fynbos' : 'trusty-bank'
     )
     const requestHeaders = Object.fromEntries(request.headers)
     const requestBody = JSON.stringify(await request.clone().json())

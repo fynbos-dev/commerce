@@ -16,11 +16,11 @@ const start: NextApiHandler = async (req, res) => {
   const merchantHost = new URL(merchantPaymentPointer.replace('$', 'http://'))
     .host
   const customerPaymentPointerUrl = customerPaymentPointer.replace(
-    '$backend',
+    '$fynbos',
     'http://localhost:3000'
   )
   const merchantPaymentPointerUrl = merchantPaymentPointer.replace(
-    '$peer-backend',
+    '$trusty-bank',
     'http://localhost:4000'
   )
 
