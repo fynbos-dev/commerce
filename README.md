@@ -4,7 +4,7 @@
 - Docker
 - A running forked Rafiki Local Development Environment (https://github.com/fynbos-dev/rafiki)
 - A device that supports Secure Payment Confirmation
-- NodeJS v16
+- NodeJS v18
 
 ## Quick Setup
 ```
